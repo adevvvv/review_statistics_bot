@@ -1,7 +1,11 @@
 package com.example.ReviewStatisticsBot.service;
 
 import com.example.ReviewStatisticsBot.config.BotConfig;
+import com.example.ReviewStatisticsBot.model.User;
+import com.example.ReviewStatisticsBot.model.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -13,7 +17,9 @@ import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScope
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.api.objects.Message;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +27,8 @@ import java.util.List;
 @Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
+    @Autowired
+    private UserRepository userRepository;
     final BotConfig config;
     static final String YES_BUTTON = "YES_BUTTON";
     static final String NO_BUTTON = "NO_BUTTON";
@@ -58,6 +66,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
             switch (messageText) {
                 case "/start":
+                    registerUser(update.getMessage());
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     break;
                 case "/register":
@@ -65,7 +74,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     break;
                 case "/help":
 
-                    prepareAndSendMessage(chatId);
+                    prepareAndSendMessage(chatId, HELP_TEXT);
                     break;
                 default:
                     sendMessage(chatId, "Извините, команда не распознана");
@@ -127,10 +136,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void prepareAndSendMessage(long chatId){
+    private void prepareAndSendMessage(long chatId, String textToSend){
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
-        message.setText(TelegramBot.HELP_TEXT);
+        message.setText(textToSend);
         executeMessage(message);
     }
 
@@ -165,6 +174,25 @@ public class TelegramBot extends TelegramLongPollingBot {
             execute(message);
         } catch (TelegramApiException e) {
             log.error("Error occurred: " + e.getMessage());
+        }
+    }
+    private void registerUser(Message msg) {
+
+        if(userRepository.findById(msg.getChatId()).isEmpty()){
+
+            var chatId = msg.getChatId();
+            var chat = msg.getChat();
+
+            User user = new User();
+
+            user.setChatId(chatId);
+            user.setFirstName(chat.getFirstName());
+            user.setLastName(chat.getLastName());
+            user.setUserName(chat.getUserName());
+            user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
+
+            userRepository.save(user);
+            log.info("user saved: " + user);
         }
     }
 }
