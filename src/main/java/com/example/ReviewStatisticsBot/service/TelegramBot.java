@@ -9,6 +9,8 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
@@ -18,17 +20,18 @@ import java.util.List;
 @Slf4j
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
-
     final BotConfig config;
     static final String HELP_TEXT = "Этот бот создан для того, чтобы мы стали лучше. Оставь пожалуйста свой отзыв о продукте и получи в конце скидку 50% на следующую покупку.\n\n" +
             "Вы можете выполнять команды из главного меню слева или набрав команду:\n\n" +
             "Введите /start, чтобы увидеть приветственное сообщение\n\n" +
-            "Введите /help, чтобы снова увидеть это сообщение";
+            "Введите /help, чтобы снова увидеть это сообщение\n\n" +
+            "Введите /register, чтобы зарегистрироваться";
     static final String ERROR_TEXT = "Error occurred: ";
     public TelegramBot(BotConfig config) {
         this.config = config;
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand("/start", "приветственное сообщение"));
+        listOfCommands.add(new BotCommand("/register", "регистрация"));
         listOfCommands.add(new BotCommand("/help", "инструкция"));
         try {
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
@@ -53,10 +56,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                 case "/start":
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     break;
-
+                case "/register":
+                    break;
                 case "/help":
 
-                    prepareAndSendMessage(chatId, HELP_TEXT);
+                    prepareAndSendMessage(chatId);
                     break;
                 default:
                     sendMessage(chatId, "Извините, команда не распознана");
@@ -88,10 +92,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void prepareAndSendMessage(long chatId, String textToSend){
+    private void prepareAndSendMessage(long chatId){
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
-        message.setText(textToSend);
+        message.setText(TelegramBot.HELP_TEXT);
         executeMessage(message);
     }
 }
